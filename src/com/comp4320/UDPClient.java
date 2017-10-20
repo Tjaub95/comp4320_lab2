@@ -1,6 +1,7 @@
 package com.comp4320;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -62,6 +63,10 @@ public class UDPClient {
 
         sendMessage[7] = calculateChecksum(sendMessage);
 
+
+        DatagramPacket sendPacket = new DatagramPacket(sendMessage, sendMessage.length, serverAddress, portNum);
+
+        packetSocket.send(sendPacket);
     }
 
     private static byte[] intToByte(int intToConv) {

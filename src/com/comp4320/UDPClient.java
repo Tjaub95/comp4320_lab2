@@ -63,10 +63,20 @@ public class UDPClient {
 
         sendMessage[7] = calculateChecksum(sendMessage);
 
+        int totalAttempted = 1;
+        while (totalAttempted <= 7) {
+            DatagramPacket sendPacket = new DatagramPacket(sendMessage, length, serverAddress, portNum);
+            System.out.println("Sending packet...");
+            packetSocket.send(sendPacket);
+            System.out.println("Packet sent...");
 
-        DatagramPacket sendPacket = new DatagramPacket(sendMessage, sendMessage.length, serverAddress, portNum);
+            DatagramPacket receivePacket = new DatagramPacket(receivedMessage, receivedMessage.length);
+            System.out.println("Waiting for response from server...");
+            packetSocket.receive(receivePacket);
+            System.out.println("Packet received...");
+        }
 
-        packetSocket.send(sendPacket);
+
     }
 
     private static byte[] intToByte(int intToConv) {

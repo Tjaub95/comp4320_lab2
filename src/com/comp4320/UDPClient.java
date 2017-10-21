@@ -10,6 +10,7 @@ import java.nio.ByteOrder;
 public class UDPClient {
     private static final int MAX_BUFF_LEN = 1000;
     private static final int GID = 12;
+    private static final int MAGIC_NUMBER = 0x4A6F7921;
 
     public static void main(String[] args) throws IOException {
 
@@ -42,7 +43,7 @@ public class UDPClient {
         byte[] sendMessage = new byte[MAX_BUFF_LEN - 9];
         byte[] receivedMessage = new byte[MAX_BUFF_LEN - 9];
         // Magic Number in Network Order
-        System.arraycopy(intToByte(1248819489), 0, sendMessage, 0, 4);
+        System.arraycopy(intToByte(MAGIC_NUMBER), 0, sendMessage, 0, 4);
 
         sendMessage[6] = (byte) GID;
         sendMessage[7] = (byte) 0;
@@ -50,6 +51,7 @@ public class UDPClient {
 
         int index = 9;
         for (String hostname : hostnames) {
+//            sendMessage[index] = (byte) hostname.getBytes("UTF-8").length;
             sendMessage[index] = (byte) '~';
             index++;
 
@@ -74,8 +76,109 @@ public class UDPClient {
             System.out.println("Waiting for response from server...");
             packetSocket.receive(receivePacket);
             System.out.println("Packet received...");
+
+            byte[] response = receivePacket.getData();
+
+            if (response[8] == (byte) 32)
+            {
+                totalAttempted++;
+                if (totalAttempted == 8)
+                {
+                    System.out.println("After 7 attempts, the server returned an invalid message");
+                }
+
+                System.out.println("A magic number was missing in the header, it was corrupted, or the wrong one was provided");
+            }
+            else if (response[8] == (byte) 64)
+            {
+                totalAttempted++;
+                if (totalAttempted == 8)
+                {
+                    System.out.println("After 7 attempts, the server returned an invalid message");
+                }
+
+                System.out.println("When the checksum was calculated on the server it didn't equal -1, meaning the message was corrupted or the CRC was calculated incorrectly");
+            }
+            else if (response[8] == (byte) 128)
+            {
+                totalAttempted++;
+                if (totalAttempted == 8)
+                {
+                    System.out.println("After 7 attempts, the server returned an invalid message");
+                }
+
+                System.out.println("The message sent was too short/long.");
+            }
+            else
+            {
+                int received_magic_number = MAGIC_NUMBER;
+                int received_tml = bytesToShort(response[4], response[5]);
+                byte received_gid = response[6];
+                byte received_checksum = response[7];
+                byte received_rid = response[8];
+
+                byte[] received_ips = new byte[received_tml - 9];
+                String[] full_ip_addr = new String[received_ips.length / 4];
+                System.arraycopy(response, 9, received_ips, 0, received_tml - 9);
+
+                byte sum = (byte) 0;
+                for (byte aResponse : response) {
+                    sum += aResponse;
+                }
+
+                if (sum == (byte) -1) {
+                    for (int i = 0; i < received_ips.length / 4; i++)
+                    {
+                        String[] parts = new String[4];
+                        int value = received_ips[4*i];
+                        if (value < 0)
+                            value += 256;
+                        parts[0] = Integer.toString(value);
+                        value = received_ips[4*i + 1];
+                        if (value < 0)
+                            value += 256;
+                        parts[1] = Integer.toString(value);
+                        value = received_ips[4*i + 2];
+                        if (value < 0)
+                            value += 256;
+                        parts[2] = Integer.toString(value);
+                        value = received_ips[4*i + 3];
+                        if (value < 0)
+                            value += 256;
+                        parts[3] = Integer.toString(value);
+
+                        String concat = parts[0] + "." + parts[1] + "." + parts[2] + "." + parts[3];
+                        full_ip_addr[i] = concat;
+                    }
+
+                    System.out.println("Server Response:");
+
+//                    System.out.println("Magic Number: " + received_magic_number);
+                    System.out.println("Total message length: " + received_tml);
+                    System.out.println("Group ID: " + received_gid);
+                    System.out.println("Checksum: " + received_checksum);
+                    System.out.println("Request ID: " + received_rid);
+
+                    for (int i = 0; i < full_ip_addr.length; i++)
+                    {
+                        System.out.print(hostnames[i]);
+                        System.out.print(": ");
+                        System.out.println(full_ip_addr[i]);
+                    }
+
+                    totalAttempted = 8;
+                }
+                else
+                {
+                    totalAttempted++;
+                    System.out.println("The server's response was corrupted");
+                }
+            }
+
+            totalAttempted++;
         }
 
+        packetSocket.close();
 
     }
 

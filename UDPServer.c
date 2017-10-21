@@ -12,6 +12,7 @@
 #define MAX_IP 30
 #define MAX_HOST 100
 #define GID 12
+#define MAGIC_NUMBER 0x4A6F7921
 
 struct __attribute__((__packed__)) packet_received {
     unsigned int magic_number;
@@ -32,11 +33,11 @@ struct __attribute__((__packed__)) valid_return_message {
 } send_valid_message;
 
 struct __attribute__((__packed__)) invalid_return_message {
-    unsigned int magic_number;
-    unsigned short total_message_len;
-    unsigned char group_id;
-    unsigned char checksum;
-    unsigned char byte_err_code;
+    int magic_number;
+    short total_message_len;
+    char group_id;
+    char checksum;
+    char byte_err_code;
 } send_invalid_message;
 
 // get sockaddr, IPv4 or IPv6
@@ -146,14 +147,14 @@ int main(char argc, char *argv[])
         received_message.magic_number = ntohs(received_message.magic_number);
 
         // Check that the correct magic number has been provided.
-        if (received_message.magic_number == (int) 1248819489)
+        if (received_message.magic_number == (int) MAGIC_NUMBER)
         {
             x = 0;
             sum = 0x00;
             // calculate checksum of sent message.
             while (x < numbytes)
             {
-                sum += buf[x]
+                sum += buf[x];
                 x++;
             }
 
@@ -224,7 +225,7 @@ int main(char argc, char *argv[])
                     send_valid_message.checksum = (char) 0;
                     send_valid_message.req_id = received_message.req_id;
 
-                    j = 0
+                    j = 0;
                     while (j < k)
                     {
                         k = 0;
@@ -247,6 +248,57 @@ int main(char argc, char *argv[])
                         exit(1);
                     }
                 }
+                else
+                {
+                    send_invalid_message.magic_number = (int) MAGIC_NUMBER;
+                    send_invalid_message.checksum = (char) 0;
+                    send_invalid_message.group_id = (char) GID;
+                    send_invalid_message.total_message_len = (short) 9;
+                    send_invalid_message.byte_err_code = (char) 128;
+
+                    send_invalid_message.checksum = calculate_checksum((char*)&send_invalid_message, send_invalid_message.total_message_len);
+
+                    if ((numbytes = sendto(sockfd, (char*)&send_invalid_message, send_invalid_message.total_message_len, 0,
+                                        (struct sockaddr *)&their_addr, addr_len)) == -1)
+                    {
+                        perror("server: sendto");
+                        exit(1);
+                    }
+                }
+            }
+            else
+            {
+                send_invalid_message.magic_number = (int) MAGIC_NUMBER;
+                send_invalid_message.checksum = (char) 0;
+                send_invalid_message.group_id = (char) GID;
+                send_invalid_message.total_message_len = (short) 9;
+                send_invalid_message.byte_err_code = (char) 64;
+
+                send_invalid_message.checksum = calculate_checksum((char*)&send_invalid_message, send_invalid_message.total_message_len);
+
+                if ((numbytes = sendto(sockfd, (char*)&send_invalid_message, send_invalid_message.total_message_len, 0,
+                                    (struct sockaddr *)&their_addr, addr_len)) == -1)
+                {
+                    perror("server: sendto");
+                    exit(1);
+                }
+            }
+        }
+        else
+        {
+            send_invalid_message.magic_number = (int) MAGIC_NUMBER;
+            send_invalid_message.checksum = (char) 0;
+            send_invalid_message.group_id = (char) GID;
+            send_invalid_message.total_message_len = (short) 9;
+            send_invalid_message.byte_err_code = (char) 32;
+
+            send_invalid_message.checksum = calculate_checksum((char*)&send_invalid_message, send_invalid_message.total_message_len);
+
+            if ((numbytes = sendto(sockfd, (char*)&send_invalid_message, send_invalid_message.total_message_len, 0,
+                    (struct sockaddr *)&their_addr, addr_len)) == -1)
+            {
+                perror("server: sendto");
+                exit(1);
             }
         }
     }

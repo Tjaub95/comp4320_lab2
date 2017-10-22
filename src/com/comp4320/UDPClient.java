@@ -51,8 +51,7 @@ public class UDPClient {
 
         int index = 9;
         for (String hostname : hostnames) {
-//            sendMessage[index] = (byte) hostname.getBytes("UTF-8").length;
-            sendMessage[index] = (byte) '~';
+            sendMessage[index] = (byte) hostname.getBytes("UTF-8").length;
             index++;
 
             System.arraycopy(hostname.getBytes("UTF-8"), 0, sendMessage, index, hostname.getBytes("UTF-8").length);
@@ -79,39 +78,30 @@ public class UDPClient {
 
             byte[] response = receivePacket.getData();
 
-            if (response[8] == (byte) 32)
-            {
+            if (response[8] == (byte) 32) {
                 totalAttempted++;
-                if (totalAttempted == 8)
-                {
+                if (totalAttempted == 8) {
                     System.out.println("After 7 attempts, the server returned an invalid message");
                 }
 
                 System.out.println("A magic number was missing in the header, it was corrupted, or the wrong one was provided");
-            }
-            else if (response[8] == (byte) 64)
-            {
+            } else if (response[8] == (byte) 64) {
                 totalAttempted++;
-                if (totalAttempted == 8)
-                {
+                if (totalAttempted == 8) {
                     System.out.println("After 7 attempts, the server returned an invalid message");
                 }
 
                 System.out.println("When the checksum was calculated on the server it didn't equal -1, meaning the message was corrupted or the CRC was calculated incorrectly");
-            }
-            else if (response[8] == (byte) 128)
-            {
+            } else if (response[8] == (byte) 128) {
                 totalAttempted++;
-                if (totalAttempted == 8)
-                {
+                if (totalAttempted == 8) {
                     System.out.println("After 7 attempts, the server returned an invalid message");
                 }
 
                 System.out.println("The message sent was too short/long.");
-            }
-            else
-            {
-                int received_magic_number = MAGIC_NUMBER;
+            } else {
+                int received_magic_number = bytesToInt(response, 0);
+                received_magic_number = Integer.reverseBytes(received_magic_number);
                 int received_tml = bytesToShort(response[4], response[5]);
                 byte received_gid = response[6];
                 byte received_checksum = response[7];
@@ -121,61 +111,61 @@ public class UDPClient {
                 String[] full_ip_addr = new String[received_ips.length / 4];
                 System.arraycopy(response, 9, received_ips, 0, received_tml - 9);
 
-                byte sum = (byte) 0;
-                for (byte aResponse : response) {
-                    sum += aResponse;
-                }
+                if (received_magic_number == MAGIC_NUMBER) {
 
-                if (sum == (byte) -1) {
-                    for (int i = 0; i < received_ips.length / 4; i++)
-                    {
-                        String[] parts = new String[4];
-                        int value = received_ips[4*i];
-                        if (value < 0)
-                            value += 256;
-                        parts[0] = Integer.toString(value);
-                        value = received_ips[4*i + 1];
-                        if (value < 0)
-                            value += 256;
-                        parts[1] = Integer.toString(value);
-                        value = received_ips[4*i + 2];
-                        if (value < 0)
-                            value += 256;
-                        parts[2] = Integer.toString(value);
-                        value = received_ips[4*i + 3];
-                        if (value < 0)
-                            value += 256;
-                        parts[3] = Integer.toString(value);
-
-                        String concat = parts[0] + "." + parts[1] + "." + parts[2] + "." + parts[3];
-                        full_ip_addr[i] = concat;
+                    byte sum = (byte) 0;
+                    for (byte aResponse : response) {
+                        sum += aResponse;
                     }
 
-                    System.out.println("Server Response:");
+                    if (sum == (byte) -1) {
+                        for (int i = 0; i < received_ips.length / 4; i++) {
+                            String[] parts = new String[4];
+                            int value = received_ips[4 * i];
+                            if (value < 0)
+                                value += 256;
+                            parts[0] = Integer.toString(value);
+                            value = received_ips[4 * i + 1];
+                            if (value < 0)
+                                value += 256;
+                            parts[1] = Integer.toString(value);
+                            value = received_ips[4 * i + 2];
+                            if (value < 0)
+                                value += 256;
+                            parts[2] = Integer.toString(value);
+                            value = received_ips[4 * i + 3];
+                            if (value < 0)
+                                value += 256;
+                            parts[3] = Integer.toString(value);
 
-//                    System.out.println("Magic Number: " + received_magic_number);
-                    System.out.println("Total message length: " + received_tml);
-                    System.out.println("Group ID: " + received_gid);
-                    System.out.println("Checksum: " + received_checksum);
-                    System.out.println("Request ID: " + received_rid);
+                            String concat = parts[0] + "." + parts[1] + "." + parts[2] + "." + parts[3];
+                            full_ip_addr[i] = concat;
+                        }
 
-                    for (int i = 0; i < full_ip_addr.length; i++)
-                    {
-                        System.out.print(hostnames[i]);
-                        System.out.print(": ");
-                        System.out.println(full_ip_addr[i]);
+                        System.out.println("Server Response:");
+
+                        System.out.println("Magic Number: " + Integer.toHexString(received_magic_number));
+                        System.out.println("Total message length: " + received_tml);
+                        System.out.println("Group ID: " + received_gid);
+                        System.out.println("Checksum: " + received_checksum);
+                        System.out.println("Request ID: " + received_rid);
+
+                        for (int i = 0; i < full_ip_addr.length; i++) {
+                            System.out.print(hostnames[i]);
+                            System.out.print(": ");
+                            System.out.println(full_ip_addr[i]);
+                        }
+
+                        totalAttempted = 8;
+                    } else {
+                        totalAttempted++;
+                        System.out.println("The server's response was corrupted");
                     }
+                }
 
-                    totalAttempted = 8;
-                }
-                else
-                {
-                    totalAttempted++;
-                    System.out.println("The server's response was corrupted");
-                }
+
+                totalAttempted++;
             }
-
-            totalAttempted++;
         }
 
         packetSocket.close();
@@ -192,6 +182,16 @@ public class UDPClient {
 
     private static short bytesToShort(byte firstHalfOfShort, byte secondHalfOfShort) {
         return (short) ((firstHalfOfShort << 8) | secondHalfOfShort);
+    }
+
+    private static int bytesToInt(byte[] bytes, int offset) {
+        int ret = 0;
+        for (int i = 0; i < 4 && i+offset < bytes.length; i++) {
+            ret <<= 8;
+            ret |= (int) bytes[i] & 0xFF;
+        }
+
+        return ret;
     }
 
     private static byte calculateChecksum(byte[] message) {

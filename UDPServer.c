@@ -15,22 +15,22 @@
 #define MAGIC_NUMBER 0x4A6F7921
 
 struct __attribute__((__packed__)) packet_received {
-    unsigned int magic_number;
-    unsigned short total_message_len;
-    unsigned char group_id;
-    unsigned char checksum;
-    unsigned char req_id;
-    unsigned char hosts[MAX_BUFF - 9];
-} received_message;
+    char magic_number[4];
+    short total_message_len;
+    char group_id;
+    char checksum;
+    char req_id;
+    char hosts[MAX_BUFF - 9];
+};
 
-struct __attribute__((__packed__)) valid_return_message {
-    unsigned int magic_number;
-    unsigned short total_message_len;
-    unsigned char group_id;
-    unsigned char checksum;
-    unsigned char req_id;
-    unsigned int ip_addrs[MAX_BUFF - 9];
-} send_valid_message;
+struct valid_return_message {
+    int magic_number;
+    short total_message_len;
+    char group_id;
+    char checksum;
+    char req_id;
+    int ip_addrs[MAX_BUFF - 9];
+} __attribute__((__packed__));
 
 struct __attribute__((__packed__)) invalid_return_message {
     int magic_number;
@@ -142,12 +142,14 @@ int main(char argc, char *argv[])
 
         buf[numbytes] = '\0';
 
+        struct packet_received received_message;
+
         received_message = *((struct packet_received *)buf);
 
-        received_message.magic_number = ntohs(received_message.magic_number);
+        char mag[] = {74, 111, 121, 33};
 
         // Check that the correct magic number has been provided.
-        if (received_message.magic_number == (int) MAGIC_NUMBER)
+        if (strncmp(received_message.magic_number, mag, 4) == 0)
         {
             x = 0;
             sum = 0x00;
@@ -169,18 +171,18 @@ int main(char argc, char *argv[])
                     i = 0;
                     index = -1;
                     host_index = 0;
-                    while (i < received_message.total_message_len - 9) {
-                        if (received_message.hosts[i] == '~')
-                        {
-                            index++;
-                            host_index = 0;
-                        }
-                        else
-                        {
+                    while (i < numbytes - 9) {
+                        int loop_len = received_message.hosts[i];
+                        index++;
+
+                        while (loop_len > 0) {
+                            i++;
                             host_names[index][host_index] = received_message.hosts[i];
                             host_index++;
+                            loop_len--;
                         }
 
+                        host_index = 0;
                         i++;
                     }
 
@@ -219,7 +221,10 @@ int main(char argc, char *argv[])
                     }
 
                     length = 9 + (4*x);
-                    send_valid_message.magic_number = ntohs(received_message.magic_number);
+
+                    struct valid_return_message send_valid_message;
+
+                    send_valid_message.magic_number = (int) MAGIC_NUMBER;
                     send_valid_message.total_message_len = ntohs(length);
                     send_valid_message.group_id = (char) GID;
                     send_valid_message.checksum = (char) 0;

@@ -78,35 +78,35 @@ public class UDPClient {
 
             byte[] response = receivePacket.getData();
 
-            if (response[8] == (byte) 32) {
+            int received_magic_number = bytesToInt(response, 0);
+            received_magic_number = Integer.reverseBytes(received_magic_number);
+            int received_tml = bytesToShort(response[4], response[5]);
+            byte received_gid = response[6];
+            byte received_checksum = response[7];
+            byte byte_error_code = response[8];
+
+            if (byte_error_code == (byte) 32) {
                 totalAttempted++;
                 if (totalAttempted == 8) {
-                    System.out.println("After 7 attempts, the server returned an invalid message");
+                    printInvalidResponse(received_magic_number, received_tml, received_gid, received_checksum, byte_error_code);
                 }
 
                 System.out.println("A magic number was missing in the header, it was corrupted, or the wrong one was provided");
-            } else if (response[8] == (byte) 64) {
+            } else if (byte_error_code == (byte) 64) {
                 totalAttempted++;
                 if (totalAttempted == 8) {
-                    System.out.println("After 7 attempts, the server returned an invalid message");
+                    printInvalidResponse(received_magic_number, received_tml, received_gid, received_checksum, byte_error_code);
                 }
 
                 System.out.println("When the checksum was calculated on the server it didn't equal -1, meaning the message was corrupted or the CRC was calculated incorrectly");
-            } else if (response[8] == (byte) 128) {
+            } else if (byte_error_code == (byte) 128) {
                 totalAttempted++;
                 if (totalAttempted == 8) {
-                    System.out.println("After 7 attempts, the server returned an invalid message");
+                    printInvalidResponse(received_magic_number, received_tml, received_gid, received_checksum, byte_error_code);
                 }
 
                 System.out.println("The message sent was too short/long.");
             } else {
-                int received_magic_number = bytesToInt(response, 0);
-                received_magic_number = Integer.reverseBytes(received_magic_number);
-                int received_tml = bytesToShort(response[4], response[5]);
-                byte received_gid = response[6];
-                byte received_checksum = response[7];
-                byte received_rid = response[8];
-
                 byte[] received_ips = new byte[received_tml - 9];
                 String[] full_ip_addr = new String[received_ips.length / 4];
                 System.arraycopy(response, 9, received_ips, 0, received_tml - 9);
@@ -148,7 +148,6 @@ public class UDPClient {
                         System.out.println("Total message length: " + received_tml);
                         System.out.println("Group ID: " + received_gid);
                         System.out.println("Checksum: " + received_checksum);
-                        System.out.println("Request ID: " + received_rid);
 
                         for (int i = 0; i < full_ip_addr.length; i++) {
                             System.out.print(hostnames[i]);
@@ -161,8 +160,10 @@ public class UDPClient {
                         totalAttempted++;
                         System.out.println("The server's response was corrupted; trying again");
                     }
+                } else {
+                    totalAttempted++;
+                    System.out.println("The magic number the server sent does not match; trying again");
                 }
-
 
                 totalAttempted++;
             }
@@ -170,6 +171,15 @@ public class UDPClient {
 
         packetSocket.close();
 
+    }
+
+    private static void printInvalidResponse(int received_magic_number, int received_tml, byte received_gid, byte received_checksum, byte byte_error_code) {
+        System.out.println("After 7 attempts, the server returned an invalid message:");
+        System.out.println("Magic Number: " + Integer.toHexString(received_magic_number));
+        System.out.println("Total message length: " + received_tml);
+        System.out.println("Group ID: " + received_gid);
+        System.out.println("Checksum: " + received_checksum);
+        System.out.println("BEC: " + String.format("%8s", Integer.toBinaryString(byte_error_code & 0xFF)).replace(' ', '0'));
     }
 
     private static byte[] intToByte(int intToConv) {
@@ -186,7 +196,7 @@ public class UDPClient {
 
     private static int bytesToInt(byte[] bytes, int offset) {
         int ret = 0;
-        for (int i = 0; i < 4 && i+offset < bytes.length; i++) {
+        for (int i = 0; i < 4 && i + offset < bytes.length; i++) {
             ret <<= 8;
             ret |= (int) bytes[i] & 0xFF;
         }

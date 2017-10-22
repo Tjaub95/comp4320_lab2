@@ -41,22 +41,19 @@ struct __attribute__((__packed__)) invalid_return_message {
 } send_invalid_message;
 
 // get sockaddr, IPv4 or IPv6
-void *get_in_addr(struct sockaddr *sa)
-{
+void *get_in_addr(struct sockaddr *sa) {
     if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
+        return &(((struct sockaddr_in *) sa)->sin_addr);
     }
 
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+    return &(((struct sockaddr_in6 *) sa)->sin6_addr);
 }
 
-char calculate_checksum(char *message, int length)
-{
+char calculate_checksum(char *message, int length) {
     char check_sum = 0x00;
     int i = 0;
 
-    while (i < length)
-    {
+    while (i < length) {
         check_sum += *(message + i);
         i++;
     }
@@ -64,8 +61,7 @@ char calculate_checksum(char *message, int length)
     return ~check_sum;
 }
 
-int main(char argc, char *argv[])
-{
+int main(char argc, char *argv[]) {
     int sockfd;
     struct addrinfo hints, *servinfo, *p;
     int rv;
@@ -74,7 +70,7 @@ int main(char argc, char *argv[])
     char buf[MAX_BUFF];
     socklen_t addr_len;
     char s[INET6_ADDRSTRLEN];
-    char * group_port;
+    char *group_port;
     short length;
     int i, x, j, k, y;
     int index, host_index;
@@ -83,11 +79,10 @@ int main(char argc, char *argv[])
     char sum;
     struct hostent *host_info;
     struct in_addr **ip_addresses;
-    char* ip_parser;
-    char* split_parser;
+    char *ip_parser;
+    char *split_parser;
 
-    if (argc != 2)
-    {
+    if (argc != 2) {
         fprintf(stderr, "usage: Need portNum\n");
         exit(1);
     }
@@ -107,7 +102,7 @@ int main(char argc, char *argv[])
     // Loop through all the results and bind to the first we can
     for (p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
-                        p->ai_protocol)) == -1) {
+                             p->ai_protocol)) == -1) {
             perror("listener: socket");
             continue;
         }
@@ -132,8 +127,8 @@ int main(char argc, char *argv[])
         printf("listener: waiting to recvfrom...\n");
 
         addr_len = sizeof their_addr;
-        if ((numbytes = recvfrom(sockfd, buf, MAX_BUFF-1, 0,
-                        (struct sockaddr *) &their_addr, &addr_len)) == -1) {
+        if ((numbytes = recvfrom(sockfd, buf, MAX_BUFF - 1, 0,
+                                 (struct sockaddr *) &their_addr, &addr_len)) == -1) {
             perror("recvfrom");
             exit(1);
         }
@@ -144,30 +139,26 @@ int main(char argc, char *argv[])
 
         struct packet_received received_message;
 
-        received_message = *((struct packet_received *)buf);
+        received_message = *((struct packet_received *) buf);
 
         char mag[] = {74, 111, 121, 33};
 
         // Check that the correct magic number has been provided.
-        if (strncmp(received_message.magic_number, mag, 4) == 0)
-        {
+        if (strncmp(received_message.magic_number, mag, 4) == 0) {
             x = 0;
             sum = 0x00;
             // calculate checksum of sent message.
-            while (x < numbytes)
-            {
+            while (x < numbytes) {
                 sum += buf[x];
                 x++;
             }
 
             // Check for data corruption
-            if (sum == (char) -1)
-            {
+            if (sum == (char) -1) {
                 received_message.total_message_len = ntohs(received_message.total_message_len);
 
                 // Check that the message is the correct length
-                if (received_message.total_message_len == (short) numbytes)
-                {
+                if (received_message.total_message_len == (short) numbytes) {
                     i = 0;
                     index = -1;
                     host_index = 0;
@@ -187,26 +178,20 @@ int main(char argc, char *argv[])
                     }
 
                     x = 0;
-                    while (x <= index)
-                    {
-                        if ((host_info = gethostbyname(host_names[x])) == NULL)
-                        {
+                    while (x <= index) {
+                        if ((host_info = gethostbyname(host_names[x])) == NULL) {
                             j = 0;
-                            while (j < 4)
-                            {
+                            while (j < 4) {
                                 ip_addrs[x][j] = (char) 255;
                                 j++;
                             }
-                        }
-                        else
-                        {
-                            ip_parser = inet_ntoa(*((struct in_addr *)host_info->h_addr));
+                        } else {
+                            ip_parser = inet_ntoa(*((struct in_addr *) host_info->h_addr));
 
                             split_parser = strtok(ip_parser, ".");
                             k = 0;
                             y = 0;
-                            while (y < 3)
-                            {
+                            while (y < 3) {
                                 ip_addrs[x][k] = (unsigned char) atoi(split_parser);
 
                                 split_parser = strtok(NULL, ".");
@@ -220,7 +205,7 @@ int main(char argc, char *argv[])
                         x++;
                     }
 
-                    length = 9 + (4*x);
+                    length = 9 + (4 * x);
 
                     struct valid_return_message send_valid_message;
 
@@ -231,64 +216,60 @@ int main(char argc, char *argv[])
                     send_valid_message.req_id = received_message.req_id;
                     memcpy(send_valid_message.ip_addrs, ip_addrs, sizeof(ip_addrs));
 
-                    send_valid_message.checksum = calculate_checksum((char*)&send_valid_message, length);
+                    send_valid_message.checksum = calculate_checksum((char *) &send_valid_message, length);
 
-                    if ((numbytes = sendto(sockfd, (char*)&send_valid_message, length, 0,
-                            (struct sockaddr *)&their_addr, addr_len)) == -1) {
+                    if ((numbytes = sendto(sockfd, (char *) &send_valid_message, length, 0,
+                                           (struct sockaddr *) &their_addr, addr_len)) == -1) {
 
                         perror("server: sendto");
                         exit(1);
                     }
-                }
-                else
-                {
+                } else {
                     send_invalid_message.magic_number = (int) MAGIC_NUMBER;
                     send_invalid_message.checksum = (char) 0;
                     send_invalid_message.group_id = (char) GID;
                     send_invalid_message.total_message_len = (short) 9;
                     send_invalid_message.byte_err_code = (char) 128;
 
-                    send_invalid_message.checksum = calculate_checksum((char*)&send_invalid_message, send_invalid_message.total_message_len);
+                    send_invalid_message.checksum = calculate_checksum((char *) &send_invalid_message,
+                                                                       send_invalid_message.total_message_len);
 
-                    if ((numbytes = sendto(sockfd, (char*)&send_invalid_message, send_invalid_message.total_message_len, 0,
-                                        (struct sockaddr *)&their_addr, addr_len)) == -1)
-                    {
+                    if ((numbytes = sendto(sockfd, (char *) &send_invalid_message,
+                                           send_invalid_message.total_message_len, 0,
+                                           (struct sockaddr *) &their_addr, addr_len)) == -1) {
                         perror("server: sendto");
                         exit(1);
                     }
                 }
-            }
-            else
-            {
+            } else {
                 send_invalid_message.magic_number = (int) MAGIC_NUMBER;
                 send_invalid_message.checksum = (char) 0;
                 send_invalid_message.group_id = (char) GID;
                 send_invalid_message.total_message_len = (short) 9;
                 send_invalid_message.byte_err_code = (char) 64;
 
-                send_invalid_message.checksum = calculate_checksum((char*)&send_invalid_message, send_invalid_message.total_message_len);
+                send_invalid_message.checksum = calculate_checksum((char *) &send_invalid_message,
+                                                                   send_invalid_message.total_message_len);
 
-                if ((numbytes = sendto(sockfd, (char*)&send_invalid_message, send_invalid_message.total_message_len, 0,
-                                    (struct sockaddr *)&their_addr, addr_len)) == -1)
-                {
+                if ((numbytes = sendto(sockfd, (char *) &send_invalid_message, send_invalid_message.total_message_len,
+                                       0,
+                                       (struct sockaddr *) &their_addr, addr_len)) == -1) {
                     perror("server: sendto");
                     exit(1);
                 }
             }
-        }
-        else
-        {
+        } else {
             send_invalid_message.magic_number = (int) MAGIC_NUMBER;
             send_invalid_message.checksum = (char) 0;
             send_invalid_message.group_id = (char) GID;
             send_invalid_message.total_message_len = (short) 9;
             send_invalid_message.byte_err_code = (char) 32;
 
-            send_invalid_message.checksum = calculate_checksum((char*)&send_invalid_message, send_invalid_message.total_message_len);
+            send_invalid_message.checksum = calculate_checksum((char *) &send_invalid_message,
+                                                               send_invalid_message.total_message_len);
 
-            if ((numbytes = sendto(sockfd, (char*)&send_invalid_message, send_invalid_message.total_message_len, 0,
-                    (struct sockaddr *)&their_addr, addr_len)) == -1)
-            {
+            if ((numbytes = sendto(sockfd, (char *) &send_invalid_message, send_invalid_message.total_message_len, 0,
+                                   (struct sockaddr *) &their_addr, addr_len)) == -1) {
                 perror("server: sendto");
                 exit(1);
             }

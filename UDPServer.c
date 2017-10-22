@@ -29,7 +29,7 @@ struct valid_return_message {
     char group_id;
     char checksum;
     char req_id;
-    int ip_addrs[MAX_BUFF - 9];
+    char ip_addrs[MAX_BUFF - 9][4];
 } __attribute__((__packed__));
 
 struct __attribute__((__packed__)) invalid_return_message {
@@ -79,7 +79,7 @@ int main(char argc, char *argv[])
     int i, x, j, k, y;
     int index, host_index;
     char host_names[MAX_BUFF - 9][MAX_HOST];
-    unsigned char ip_addrs[MAX_BUFF - 9][MAX_IP];
+    char ip_addrs[MAX_BUFF - 9][4];
     char sum;
     struct hostent *host_info;
     struct in_addr **ip_addresses;
@@ -229,20 +229,7 @@ int main(char argc, char *argv[])
                     send_valid_message.group_id = (char) GID;
                     send_valid_message.checksum = (char) 0;
                     send_valid_message.req_id = received_message.req_id;
-
-                    j = 0;
-                    while (j < k)
-                    {
-                        k = 0;
-
-                        while (k < 4)
-                        {
-                            send_valid_message.ip_addrs[(4*j + k)] = ip_addrs[j][k];
-                            k++;
-                        }
-
-                        j++;
-                    }
+                    memcpy(send_valid_message.ip_addrs, ip_addrs, sizeof(ip_addrs));
 
                     send_valid_message.checksum = calculate_checksum((char*)&send_valid_message, length);
 

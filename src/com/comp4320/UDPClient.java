@@ -159,7 +159,7 @@ public class UDPClient {
                         totalAttempted = 8;
                     } else {
                         totalAttempted++;
-                        System.out.println("The server's response was corrupted");
+                        System.out.println("The server's response was corrupted; trying again");
                     }
                 }
 

@@ -79,7 +79,6 @@ public class UDPClient {
             byte[] response = receivePacket.getData();
 
             int received_magic_number = bytesToInt(response, 0);
-            received_magic_number = Integer.reverseBytes(received_magic_number);
             int received_tml = bytesToShort(response[4], response[5]);
             byte received_gid = response[6];
             byte received_checksum = response[7];

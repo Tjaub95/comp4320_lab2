@@ -209,7 +209,7 @@ int main(char argc, char *argv[]) {
 
                     struct valid_return_message send_valid_message;
 
-                    send_valid_message.magic_number = (int) MAGIC_NUMBER;
+                    send_valid_message.magic_number = (int) ntohl(MAGIC_NUMBER);
                     send_valid_message.total_message_len = ntohs(length);
                     send_valid_message.group_id = (char) GID;
                     send_valid_message.checksum = (char) 0;
@@ -225,7 +225,7 @@ int main(char argc, char *argv[]) {
                         exit(1);
                     }
                 } else {
-                    send_invalid_message.magic_number = (int) MAGIC_NUMBER;
+                    send_invalid_message.magic_number = (int) ntohl(MAGIC_NUMBER);
                     send_invalid_message.checksum = (char) 0;
                     send_invalid_message.group_id = (char) GID;
                     send_invalid_message.total_message_len = (short) 9;
@@ -242,7 +242,7 @@ int main(char argc, char *argv[]) {
                     }
                 }
             } else {
-                send_invalid_message.magic_number = (int) MAGIC_NUMBER;
+                send_invalid_message.magic_number = (int) ntohl(MAGIC_NUMBER);
                 send_invalid_message.checksum = (char) 0;
                 send_invalid_message.group_id = (char) GID;
                 send_invalid_message.total_message_len = (short) 9;
@@ -259,7 +259,7 @@ int main(char argc, char *argv[]) {
                 }
             }
         } else {
-            send_invalid_message.magic_number = (int) MAGIC_NUMBER;
+            send_invalid_message.magic_number = (int) ntohl(MAGIC_NUMBER);
             send_invalid_message.checksum = (char) 0;
             send_invalid_message.group_id = (char) GID;
             send_invalid_message.total_message_len = (short) 9;

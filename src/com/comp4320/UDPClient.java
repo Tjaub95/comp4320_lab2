@@ -84,21 +84,21 @@ public class UDPClient {
             byte received_checksum = response[7];
             byte byte_error_code = response[8];
 
-            if (byte_error_code == (byte) 32) {
+            if (byte_error_code == (byte) 1) {
                 totalAttempted++;
                 if (totalAttempted == 8) {
                     printInvalidResponse(received_magic_number, received_tml, received_gid, received_checksum, byte_error_code);
                 }
 
                 System.out.println("A magic number was missing in the header, it was corrupted, or the wrong one was provided");
-            } else if (byte_error_code == (byte) 64) {
+            } else if (byte_error_code == (byte) 2) {
                 totalAttempted++;
                 if (totalAttempted == 8) {
                     printInvalidResponse(received_magic_number, received_tml, received_gid, received_checksum, byte_error_code);
                 }
 
                 System.out.println("When the checksum was calculated on the server it didn't equal -1, meaning the message was corrupted or the CRC was calculated incorrectly");
-            } else if (byte_error_code == (byte) 128) {
+            } else if (byte_error_code == (byte) 4) {
                 totalAttempted++;
                 if (totalAttempted == 8) {
                     printInvalidResponse(received_magic_number, received_tml, received_gid, received_checksum, byte_error_code);

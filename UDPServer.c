@@ -229,7 +229,7 @@ int main(char argc, char *argv[]) {
                     send_invalid_message.checksum = (char) 0;
                     send_invalid_message.group_id = (char) GID;
                     send_invalid_message.total_message_len = (short) 9;
-                    send_invalid_message.byte_err_code = (char) 128;
+                    send_invalid_message.byte_err_code = (char) 4;
 
                     send_invalid_message.checksum = calculate_checksum((char *) &send_invalid_message,
                                                                        send_invalid_message.total_message_len);
@@ -246,7 +246,7 @@ int main(char argc, char *argv[]) {
                 send_invalid_message.checksum = (char) 0;
                 send_invalid_message.group_id = (char) GID;
                 send_invalid_message.total_message_len = (short) 9;
-                send_invalid_message.byte_err_code = (char) 64;
+                send_invalid_message.byte_err_code = (char) 2;
 
                 send_invalid_message.checksum = calculate_checksum((char *) &send_invalid_message,
                                                                    send_invalid_message.total_message_len);
@@ -263,7 +263,7 @@ int main(char argc, char *argv[]) {
             send_invalid_message.checksum = (char) 0;
             send_invalid_message.group_id = (char) GID;
             send_invalid_message.total_message_len = (short) 9;
-            send_invalid_message.byte_err_code = (char) 32;
+            send_invalid_message.byte_err_code = (char) 1;
 
             send_invalid_message.checksum = calculate_checksum((char *) &send_invalid_message,
                                                                send_invalid_message.total_message_len);

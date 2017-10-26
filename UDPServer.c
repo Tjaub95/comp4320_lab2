@@ -50,15 +50,27 @@ void *get_in_addr(struct sockaddr *sa) {
 }
 
 char calculate_checksum(char *message, int length) {
-    char check_sum = 0x00;
+    int check_sum = 0;
     int i = 0;
+    short int mask = 0x00FF;
 
     while (i < length) {
-        check_sum += *(message + i);
+        check_sum += (int) message[i];
         i++;
     }
 
-    return ~check_sum;
+    if (check_sum > 255) {
+        int lcheck = check_sum;
+        lcheck = lcheck >> 8;
+
+        int rcheck = check_sum & mask;
+        check_sum = lcheck + rcheck;
+    }
+
+    check_sum = ~check_sum;
+    check_sum = check_sum & mask;
+
+    return (char) check_sum;
 }
 
 int main(char argc, char *argv[]) {
@@ -153,6 +165,13 @@ int main(char argc, char *argv[]) {
                 x++;
             }
 
+            sum = calculate_checksum((char *) &received_message, numbytes);
+
+            if (sum == (char) 1) {
+                sum = -sum;
+            } else if (sum == (char) 0) {
+                sum--;
+            }
             // Check for data corruption
             if (sum == (char) -1) {
                 received_message.total_message_len = ntohs(received_message.total_message_len);
@@ -211,7 +230,7 @@ int main(char argc, char *argv[]) {
 
                     send_valid_message.magic_number = (int) ntohl(MAGIC_NUMBER);
                     send_valid_message.total_message_len = ntohs(length);
-                    send_valid_message.group_id = (char) GID;
+                    send_valid_message.group_id = received_message.group_id;
                     send_valid_message.checksum = (char) 0;
                     send_valid_message.req_id = received_message.req_id;
                     memcpy(send_valid_message.ip_addrs, ip_addrs, sizeof(ip_addrs));
@@ -227,8 +246,8 @@ int main(char argc, char *argv[]) {
                 } else {
                     send_invalid_message.magic_number = (int) ntohl(MAGIC_NUMBER);
                     send_invalid_message.checksum = (char) 0;
-                    send_invalid_message.group_id = (char) GID;
-                    send_invalid_message.total_message_len = (short) 9;
+                    send_invalid_message.group_id = received_message.group_id;
+                    send_invalid_message.total_message_len = (short) ntohs(9);
                     send_invalid_message.byte_err_code = (char) 4;
 
                     send_invalid_message.checksum = calculate_checksum((char *) &send_invalid_message,
@@ -244,8 +263,8 @@ int main(char argc, char *argv[]) {
             } else {
                 send_invalid_message.magic_number = (int) ntohl(MAGIC_NUMBER);
                 send_invalid_message.checksum = (char) 0;
-                send_invalid_message.group_id = (char) GID;
-                send_invalid_message.total_message_len = (short) 9;
+                send_invalid_message.group_id = received_message.group_id;
+                send_invalid_message.total_message_len = (short) ntohs(9);
                 send_invalid_message.byte_err_code = (char) 2;
 
                 send_invalid_message.checksum = calculate_checksum((char *) &send_invalid_message,
@@ -261,8 +280,8 @@ int main(char argc, char *argv[]) {
         } else {
             send_invalid_message.magic_number = (int) ntohl(MAGIC_NUMBER);
             send_invalid_message.checksum = (char) 0;
-            send_invalid_message.group_id = (char) GID;
-            send_invalid_message.total_message_len = (short) 9;
+            send_invalid_message.group_id = received_message.group_id;
+            send_invalid_message.total_message_len = (short) ntohs(9);
             send_invalid_message.byte_err_code = (char) 1;
 
             send_invalid_message.checksum = calculate_checksum((char *) &send_invalid_message,

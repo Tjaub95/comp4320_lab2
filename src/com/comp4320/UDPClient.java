@@ -120,6 +120,14 @@ public class UDPClient {
                         sum += aResponse;
                     }
 
+                    sum = calculateChecksum(response);
+
+                    if (sum == 1) {
+                        sum = (byte) -sum;
+                    } else if (sum == 0) {
+                        sum--;
+                    }
+
                     if (sum == (byte) -1) {
                         for (int i = 0; i < received_ips.length / 4; i++) {
                             String[] parts = new String[4];
@@ -209,21 +217,19 @@ public class UDPClient {
 
     private static byte calculateChecksum(byte[] message) {
         int sum = 0;
-        int lcheck;
-        int rcheck;
         int mask = 0x00FF;
 
-        // Calculate checksum
+        // Calculate entire message sum
         for (byte aMessage : message) {
             sum += aMessage;
         }
 
-        // Make it an 8 bit checksum
+        // Make it an 8 bit checksum by splitting it into two halves
         if (sum > 255) {
-            lcheck = sum;
+            int lcheck = sum;
             lcheck = lcheck >> 8;
 
-            rcheck = sum & mask;
+            int rcheck = sum & mask;
             sum = lcheck + rcheck;
         }
 

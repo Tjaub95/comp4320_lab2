@@ -82,29 +82,32 @@ public class UDPClient {
             int received_tml = bytesToShort(response[4], response[5]);
             byte received_gid = response[6];
             byte received_checksum = response[7];
-            byte byte_error_code = response[8];
 
-            if (byte_error_code == (byte) 1) {
-                totalAttempted++;
-                if (totalAttempted == 8) {
-                    printInvalidResponse(received_magic_number, received_tml, received_gid, received_checksum, byte_error_code);
+            if (received_tml <= 9) {
+                byte byte_error_code = response[8];
+
+                if (byte_error_code == (byte) 1) {
+                    totalAttempted++;
+                    if (totalAttempted == 8) {
+                        printInvalidResponse(received_magic_number, received_tml, received_gid, received_checksum, byte_error_code);
+                    }
+
+                    System.out.println("A magic number was missing in the header, it was corrupted, or the wrong one was provided");
+                } else if (byte_error_code == (byte) 2) {
+                    totalAttempted++;
+                    if (totalAttempted == 8) {
+                        printInvalidResponse(received_magic_number, received_tml, received_gid, received_checksum, byte_error_code);
+                    }
+
+                    System.out.println("When the checksum was calculated on the server it didn't equal -1, meaning the message was corrupted or the CRC was calculated incorrectly");
+                } else if (byte_error_code == (byte) 4) {
+                    totalAttempted++;
+                    if (totalAttempted == 8) {
+                        printInvalidResponse(received_magic_number, received_tml, received_gid, received_checksum, byte_error_code);
+                    }
+
+                    System.out.println("The message sent was too short/long.");
                 }
-
-                System.out.println("A magic number was missing in the header, it was corrupted, or the wrong one was provided");
-            } else if (byte_error_code == (byte) 2) {
-                totalAttempted++;
-                if (totalAttempted == 8) {
-                    printInvalidResponse(received_magic_number, received_tml, received_gid, received_checksum, byte_error_code);
-                }
-
-                System.out.println("When the checksum was calculated on the server it didn't equal -1, meaning the message was corrupted or the CRC was calculated incorrectly");
-            } else if (byte_error_code == (byte) 4) {
-                totalAttempted++;
-                if (totalAttempted == 8) {
-                    printInvalidResponse(received_magic_number, received_tml, received_gid, received_checksum, byte_error_code);
-                }
-
-                System.out.println("The message sent was too short/long.");
             } else {
                 byte[] received_ips = new byte[received_tml - 9];
                 String[] full_ip_addr = new String[received_ips.length / 4];
@@ -165,6 +168,7 @@ public class UDPClient {
                 }
 
                 totalAttempted++;
+
             }
         }
 
@@ -204,12 +208,30 @@ public class UDPClient {
     }
 
     private static byte calculateChecksum(byte[] message) {
-        byte sum = (byte) 0;
+        int sum = 0;
+        int lcheck;
+        int rcheck;
+        int mask = 0x00FF;
 
+        // Calculate checksum
         for (byte aMessage : message) {
             sum += aMessage;
         }
 
-        return (byte) ~sum;
+        // Make it an 8 bit checksum
+        if (sum > 255) {
+            lcheck = sum;
+            lcheck = lcheck >> 8;
+
+            rcheck = sum & mask;
+            sum = lcheck + rcheck;
+        }
+
+        // Take the 1's complement
+        sum = ~sum;
+
+        // Truncate the 8 MSB
+        sum = sum & mask;
+        return (byte) sum;
     }
 }

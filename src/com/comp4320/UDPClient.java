@@ -115,20 +115,9 @@ public class UDPClient {
 
                 if (received_magic_number == MAGIC_NUMBER) {
 
-                    byte sum = (byte) 0;
-                    for (byte aResponse : response) {
-                        sum += aResponse;
-                    }
+                    byte sum = calculateChecksum(response);
 
-                    sum = calculateChecksum(response);
-
-                    if (sum == 1) {
-                        sum = (byte) -sum;
-                    } else if (sum == 0) {
-                        sum--;
-                    }
-
-                    if (sum == (byte) -1) {
+                    if (sum == (byte) 0) {
                         for (int i = 0; i < received_ips.length / 4; i++) {
                             String[] parts = new String[4];
                             int value = received_ips[4 * i];
@@ -222,22 +211,21 @@ public class UDPClient {
         // Calculate entire message sum
         for (byte aMessage : message) {
             sum += aMessage;
-        }
 
-        // Make it an 8 bit checksum by splitting it into two halves
-        if (sum > 255) {
-            int lcheck = sum;
-            lcheck = lcheck >> 8;
+            // Make it an 8 bit checksum by splitting it into two halves
+            if (sum > 255) {
+                int lcheck = sum;
+                lcheck = lcheck >> 8;
 
-            int rcheck = sum & mask;
-            sum = lcheck + rcheck;
+                int rcheck = sum & mask;
+                sum = lcheck + rcheck;
+            }
+
         }
 
         // Take the 1's complement
         sum = ~sum;
 
-        // Truncate the 8 MSB
-        sum = sum & mask;
         return (byte) sum;
     }
 }

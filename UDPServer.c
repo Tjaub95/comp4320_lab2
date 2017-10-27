@@ -57,18 +57,17 @@ char calculate_checksum(char *message, int length) {
     while (i < length) {
         check_sum += (int) message[i];
         i++;
-    }
 
-    if (check_sum > 255) {
-        int lcheck = check_sum;
-        lcheck = lcheck >> 8;
+        if (check_sum > 255) {
+            int lcheck = check_sum;
+            lcheck = lcheck >> 8;
 
-        int rcheck = check_sum & mask;
-        check_sum = lcheck + rcheck;
+            int rcheck = check_sum & mask;
+            check_sum = lcheck + rcheck;
+        }
     }
 
     check_sum = ~check_sum;
-    check_sum = check_sum & mask;
 
     return (char) check_sum;
 }
@@ -157,24 +156,15 @@ int main(char argc, char *argv[]) {
 
         // Check that the correct magic number has been provided.
         if (strncmp(received_message.magic_number, mag, 4) == 0) {
-            x = 0;
-            sum = 0x00;
-            // calculate checksum of sent message.
-            while (x < numbytes) {
-                sum += buf[x];
-                x++;
-            }
 
-            sum = calculate_checksum((char *) &received_message, numbytes);
+            received_message.total_message_len = ntohs(received_message.total_message_len);
 
-            if (sum == (char) 1) {
-                sum = -sum;
-            } else if (sum == (char) 0) {
-                sum--;
-            }
+            printf("Received checksum: %d\n", received_message.checksum);
+            sum = calculate_checksum((char *) &received_message, received_message.total_message_len);
+            printf("Calculated checksum %d\n", sum);
+
             // Check for data corruption
-            if (sum == (char) -1) {
-                received_message.total_message_len = ntohs(received_message.total_message_len);
+            if (sum == (char) 0) {
 
                 // Check that the message is the correct length
                 if (received_message.total_message_len == (short) numbytes) {
